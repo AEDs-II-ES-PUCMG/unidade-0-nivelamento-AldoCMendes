@@ -38,4 +38,13 @@ public class ProdutoPerecivel extends Produto {
 
         return dados;
     }
+
+    @Override
+    public String gerarDadosTexto() {
+        DateTimeFormatter formatador = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        String PrecoFormatado = String.format("%.2f", precoCusto).replace(",", ".");
+        String MargemFormatada = String.format("%.2f", margemLucro).replace(",", ".");
+        String DataFormatada = formatador.format(dataDeValidade);
+        return String.format("2; %s; %s; %s; %s", getDescricao(), PrecoFormatado, MargemFormatada, DataFormatada);
+    }
 }
