@@ -1,5 +1,9 @@
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.nio.charset.Charset;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.Scanner;
 
 public class Comercio {
@@ -62,32 +66,28 @@ public class Comercio {
      */
     static Produto[] lerProdutos(String nomeArquivoDados) {
         Scanner arquivo = null;
-        int i, numProdutos;
+        int i = 0; // Inicializa i
         String linha;
         Produto produto;
-        Produto[] produtosCadastrados = new Produto[MAX_NOVOS_PRODUTOS];
-        
+        Produto[] produtosLidos = new Produto[MAX_NOVOS_PRODUTOS]; // Usar um array local para leitura
 
-        try{
-        arquivo = new Scanner(new File(nomeArquivoDados), "UTF-8");
-        numProdutos = Integer.parseInt(arquivo.nextLine());
-        for(i = 0; i < numProdutos; i++){
-            linha = arquivo.nextLine();
-            produto = Produto.criarDoTexto(linha);
-            produtosCadastrados[i] = produto;
-        }
-        quantosProdutos=i;
-        catch (IOException excessoArquivo){
-            produtosCadastrados = null;
+        try {
+            arquivo = new Scanner(new File(nomeArquivoDados), "UTF-8");
+            int numProdutos = Integer.parseInt(arquivo.nextLine());
+            for (i = 0; i < numProdutos; i++) {
+                linha = arquivo.nextLine();
+                produto = Produto.criarDoTexto(linha);
+                produtosLidos[i] = produto;
+            }
+            quantosProdutos = i; // Atualiza a quantidade de produtos lidos
+        } catch (IOException excessoArquivo) {
+            System.err.println("Erro ao ler o arquivo de dados: " + excessoArquivo.getMessage());
+            produtosLidos = new Produto[MAX_NOVOS_PRODUTOS]; // Retorna um array vazio em caso de erro
             quantosProdutos = 0;
-        }
-        finally{
-            
+        } finally {
+            if (arquivo != null) { // Verifica se o scanner foi inicializado antes de fechar
                 arquivo.close();
-            
-        }
-        
-            
+            }
         }
         /*
          * Ler a primeira linha do arquivoDados contendo a quantidade de produtos
@@ -101,11 +101,18 @@ public class Comercio {
          * criarDoTexto()). Cada objeto Produto instanciado será armazenado no
          * vetorProdutos.
          */
-        return vetorProdutos;
+        return produtosLidos; // Retorna o array local
     }
 
     /** Lista todos os produtos cadastrados, numerados, um por linha */
     static void listarTodosOsProdutos() {
+
+        cabecalho();
+        System.out.println("LISTA DE PRODUTOS:");
+        System.out.println("==================");
+        for (int i = 0; i < quantosProdutos; i++) {
+            System.out.println((i + 1) + "." + produtosCadastrados[i].toString());
+        }
         /*
          * Percorrer o vetor de produtosCadastrados, escrevendo na tela os dados de cada
          * um (utilizar o método
@@ -120,6 +127,24 @@ public class Comercio {
      * mensagem padrão
      */
     static void localizarProdutos() {
+        cabecalho();
+        System.out.println("LOCALIZAR PRODUTO:");
+        System.out.println("==================");
+        System.out.print("Digite o nome do produto: ");
+        String nomeBuscado = teclado.nextLine();
+
+        ProdutoNaoPerecivel produtoBuscado = new ProdutoNaoPerecivel(nomeBuscado, 1.0, 0.1);
+        boolean encontrado = false;
+        for (int i = 0; i < quantosProdutos; i++) {
+            if (produtosCadastrados[i].equals(produtoBuscado)) {
+                System.out.println((i + 1) + "." + produtosCadastrados[i].toString());
+                encontrado = true;
+                break;
+            }
+        }
+        if (!encontrado) {
+            System.out.println("Produto " + nomeBuscado + " não encontrado.");
+        }
         /*
          * Ler do teclado a descrição (nome) do produto que o usuário deseja localizar,
          * procurar no vetor de
@@ -141,13 +166,45 @@ public class Comercio {
      * objetos.
      */
     static void cadastrarProduto() {
-        /*
-         * Implementar a sub-rotina de exibir o novo menu para cadastro de novo produto,
-         * ler os dados necessários
-         * conforme o tipo desejado, criar o objeto correspondente, salvando-o no vetor
-         * de produtosCadastrados e
-         * incrementando a variável de controle da quantidade de produtos.
-         */
+        cabecalho();
+        if (quantosProdutos >= produtosCadastrados.length) {
+            System.out.println("Não há espaço para mais produtos!");
+            return;
+        }
+
+        System.out.println("CADASTRAR NOVO PRODUTO:");
+        System.out.println("1 - Produto Não Perecível");
+        System.out.println("2 - Produto Perecível");
+        System.out.print("Escolha o tipo: ");
+        int tipo = Integer.parseInt(teclado.nextLine());
+
+        System.out.print("Descrição: ");
+        String descricao = teclado.nextLine();
+
+        System.out.print("Preço de custo: ");
+        double precoCusto = Double.parseDouble(teclado.nextLine());
+
+        System.out.print("Margem de lucro (ex: 0.30 para 30%): ");
+        double margemLucro = Double.parseDouble(teclado.nextLine());
+
+        Produto novoProduto = null;
+
+        if (tipo == 1) {
+            novoProduto = new ProdutoNaoPerecivel(descricao, precoCusto, margemLucro);
+        } else if (tipo == 2) {
+            System.out.print("Data de validade (dd/MM/yyyy): ");
+            String dataTexto = teclado.nextLine();
+            DateTimeFormatter formatador = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+            LocalDate validade = LocalDate.parse(dataTexto, formatador);
+            novoProduto = new ProdutoPerecivel(descricao, precoCusto, margemLucro, validade);
+        } else {
+            System.out.println("Tipo inválido!");
+            return;
+        }
+
+        produtosCadastrados[quantosProdutos] = novoProduto;
+        quantosProdutos++;
+        System.out.println("Produto cadastrado com sucesso!");
     }
 
     /**
@@ -165,6 +222,22 @@ public class Comercio {
          * uma linha de texto com os dados de cada objeto Produto, escrevendo-a no
          * arquivo.
          */
+
+        PrintWriter escritor = null;
+        try {
+            escritor = new PrintWriter(nomeArquivo, "UTF-8");
+            escritor.println(quantosProdutos);
+            for (int i = 0; i < quantosProdutos; i++) {
+                escritor.println(produtosCadastrados[i].gerarDadosTexto());
+            }
+            System.out.println("Dados salvos com sucesso!");
+        } catch (IOException e) {
+            System.out.println("Erro ao salvar: " + e.getMessage());
+        } finally {
+            if (escritor != null) {
+                escritor.close();
+            }
+        }
     }
 
     public static void main(String[] args) throws Exception {
