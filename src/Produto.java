@@ -83,7 +83,7 @@ public abstract class Produto {
 
 		NumberFormat moeda = NumberFormat.getCurrencyInstance();
 
-		return String.format("NOME: " + descricao + ": " + moeda.format(valorDeVenda()));
+		return String.format("NOME: " + descricao + ": " + moeda.format(valorDeVenda()).replace('\u00A0', ' '));
 	}
 
 	/**
